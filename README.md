@@ -12,7 +12,7 @@ az role assignment create \
 --assignee-object-id 3a06b027-a664-42f8-bd87-52a75c210bdc \
 --assignee-principal-type ServicePrincipal \
 --role Reader \
---scope "/subscriptions/**68b49ef1-514f-4d17-9849-26b3e9e1a838**/resourceGroups/**myResourceGroup**/providers/Microsoft.ContainerInstance/containerGroupProfiles/mycontainergroupprofile"
+--scope "/subscriptions/{subscription-Id}/resourceGroups/{ResourrceGrpName}/providers/Microsoft.ContainerInstance/containerGroupProfiles/{ProfileName}"
 ```
 
 
