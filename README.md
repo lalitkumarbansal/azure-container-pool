@@ -15,6 +15,9 @@ az role assignment create \
 ```
 
 
+# Run the java program
+``` mvn clean compile exec:java ```
+
 <img width="944" height="845" alt="image" src="https://github.com/user-attachments/assets/515b1a5b-33b7-4edb-a9d5-824ffcfcae57" />
 
 
