@@ -1,11 +1,11 @@
 # azure-container-pool
 
-Create a resource group
-Create a vnet with subnet 
-Deletegate the subnet to container group
-Assign the roles to as per following page at resource group level
-https://learn.microsoft.com/en-us/azure/container-instances/container-instances-standby-pool-configure-permissions
-Also assign the Reader permission at the RG level otherwise you will have to give permission later after profile creation
+- Create a resource group
+- Create a vnet with subnet 
+- Delegate the subnet to container group
+- Assign the roles to as per following page at resource group level
+- https://learn.microsoft.com/en-us/azure/container-instances/container-instances-standby-pool-configure-permissions
+- Also assign the Reader permission at the RG level otherwise you will have to give permission later after profile creation
 
 ```
 az role assignment create \
