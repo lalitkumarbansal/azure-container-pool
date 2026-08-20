@@ -68,7 +68,7 @@ public class App {
 		waitForReadyContainer(resourceManager, pool.id());
 
 
-		for (int i=1; i<6; i++) {
+		for (int i=0; i<20; i++) {
 		
 		GenericResource containerGroup = createContainerFromPool(resourceManager, subscriptionId, resourceGroupName,
 				containerGroupName+"-"+i, location, containerGroupProfile.id(), profileRevision, pool.id(), subnetID);
@@ -77,11 +77,15 @@ public class App {
 			System.out.println("---------------------------------");
 			//deleteContainer(resourceManager, containerGroupName+i, resourceGroupName);
 		}
-//		GenericResource containerGroup1 = createContainerFromPool(resourceManager, subscriptionId, resourceGroupName,
-//				containerGroupName+"2", location, containerGroupProfile.id(), profileRevision, pool.id(), subnetID);
-//		System.out.println("Container group successfully created from pool: " + containerGroup1.id());
-//		//deleteContainer(resourceManager, containerGroupName, resourceGroupName);
 		
+		for (int i = 0; i < 20; i++) {
+
+			GenericResource containerGroup1 = createContainerFromPool(resourceManager, subscriptionId,
+					resourceGroupName, containerGroupName + "-" + i, location, containerGroupProfile.id(),
+					profileRevision, pool.id(), subnetID);
+			System.out.println("Container group successfully created from pool: " + containerGroup1.id());
+			deleteContainer(resourceManager, containerGroupName + "-" + i, resourceGroupName);
+		}
 	}
 
 	
@@ -160,7 +164,7 @@ public class App {
 
 			System.out.println("Waiting for standby pool refill (attempt " + attempt + "/" + maxAttempts + ")...");
 			try {
-				Thread.sleep(15_000);
+				Thread.sleep(12_000);
 			} catch (InterruptedException exception) {
 				Thread.currentThread().interrupt();
 				throw new IllegalStateException("Interrupted while waiting for standby pool refill", exception);
@@ -232,6 +236,7 @@ public class App {
 			String resourceGroupName, String containerGroupName, String location, String profileId,
 			long profileRevision, String standbyPoolId, String SubnetID) {
 		String apiVersion = "2025-09-01";
+		int maxReservationAttempts = 6;
 		/*
 		String containerGroupId = "/subscriptions/" + subscriptionId + "/resourceGroups/" + resourceGroupName
 				+ "/providers/Microsoft.ContainerInstance/containerGroups/" + containerGroupName;
@@ -259,10 +264,41 @@ public class App {
 				);
 
 		
-		return resourceManager.genericResources().define(containerGroupName).withRegion(location)
-				.withExistingResourceGroup(resourceGroupName).withResourceType("containerGroups")
-				.withProviderNamespace("Microsoft.ContainerInstance").withoutPlan().withApiVersion(apiVersion)
-				.withProperties(properties).create();
+		for (int attempt = 1; attempt <= maxReservationAttempts; attempt++) {
+			try {
+				return resourceManager.genericResources().define(containerGroupName).withRegion(location)
+						.withExistingResourceGroup(resourceGroupName).withResourceType("containerGroups")
+						.withProviderNamespace("Microsoft.ContainerInstance").withoutPlan().withApiVersion(apiVersion)
+						.withProperties(properties).create();
+			} catch (ManagementException exception) {
+
+                System.out.println("*************************");
+                System.out.println("Management Execqption occurred while creating container group: " + exception.getMessage());
+                System.out.println("*************************");
+
+				if (!isInsufficientStandbyCapacity(exception) || attempt == maxReservationAttempts) {
+					throw exception;
+				}
+
+				System.out.println("No standby container is currently available for " + containerGroupName
+						+ "; waiting for the pool to refill before retry " + (attempt + 1) + "/"
+						+ maxReservationAttempts + ".");
+				waitForReadyContainer(resourceManager, standbyPoolId);
+			}
+		}
+
+		throw new IllegalStateException("Container group reservation attempts were exhausted");
+	}
+
+	private static boolean isInsufficientStandbyCapacity(ManagementException exception) {
+		if (exception.getResponse() == null || exception.getResponse().getStatusCode() != 400) {
+			return false;
+		}
+
+		String message = exception.getMessage();
+		return message != null
+				&& message.contains("StandyPoolReservationFailed")
+				&& message.contains("InsufficientContainerGroups");
 	}
 
 	private static void deleteContainer(ResourceManager resourceManager, String containerName,
